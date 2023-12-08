@@ -291,6 +291,7 @@ class SetUpTestTables < ::ActiveRecord::Migration::Current
       t.integer :mass
       t.string :name
       t.text :supplier
+      t.binary :hello
     end
 
     create_table :boolits, force: true do |t|
@@ -376,6 +377,7 @@ class SetUpTestTables < ::ActiveRecord::Migration::Current
       t.integer :mass
       t.string :name
       t.text :supplier
+      t.binary :hello
     end
   end
 

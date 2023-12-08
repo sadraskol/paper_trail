@@ -8,5 +8,6 @@ class Vegetable < ApplicationRecord
 
   if PaperTrail.active_record_gte_7_0?
     encrypts :supplier
+    encrypts :hello
   end
 end

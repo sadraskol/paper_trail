@@ -49,6 +49,42 @@ RSpec.shared_examples "active_record_encryption" do |model|
         end
       end
 
+      it "is versioned with encrypted values" do
+        original_hello, original_name = record.values_at(:hello, :name)
+
+        # hello is encrypted, name is not
+        record.update!(hello: "XYZ", name: "Avocado")
+
+        expect(record.versions.count).to be 2
+        expect(record.versions.pluck(:event)).to include("create", "update")
+
+        # versioned encrypted value should be something like
+        # "{\"p\":\"zDQU\",\"h\":{\"iv\":\"h2OADmJT3DfK1EZc\",\"at\":\"Urcd0mGSwyu9rGT1vrE5cg==\"}}"
+
+        # check paper trail object
+        object = record.versions.last.object
+        expect(object.to_s).not_to include("XYZ")
+        versioned_hello, versioned_name = object.values_at("hello", "name")
+        # encrypted column should be versioned with encrypted value
+        expect(versioned_hello).not_to eq(original_hello)
+        # non-encrypted column should be versioned with the original value
+        expect(versioned_name).to eq(original_name)
+        parsed_versioned_hello = JSON.parse(versioned_hello)
+        expect(parsed_versioned_hello)
+          .to match(hash_including("p", "h" => hash_including("iv", "at")))
+
+        # check paper trail object_changes
+        object_changes = record.versions.last.object_changes
+        expect(object_changes.to_s).not_to include("XYZ")
+        hello_changes, name_changes = object_changes.values_at("hello", "name")
+        expect(hello_changes).not_to eq([original_hello, "XYZ"])
+        expect(name_changes).to eq([original_name, "Avocado"])
+        hello_changes.each do |hello|
+          parsed_hello = JSON.parse(hello)
+          expect(parsed_hello).to match(hash_including("p", "h" => hash_including("iv", "at")))
+        end
+      end
+
       it "reifies encrypted values to decrypted values" do
         record.update!(supplier: "XYZ", name: "Avocado")
         expect(record.versions.last.reify.supplier).to eq "ABC"
